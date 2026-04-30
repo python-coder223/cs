@@ -27,7 +27,7 @@ from telegram.ext import (
 # =========================
 # CONFIG
 # =========================
-TOKEN       = "8754991264:AAEMfS7pLSBieHnuunCCz5Jl4I9SZylqCic"
+TOKEN       = "8754991264:AAFcBbgpExJYqx0T5O412I1XdQSgW3Jym3g"
 CS_HOST     = "84.54.82.226"
 CS_PORT     = 27015
 SITE_URL    = "https://arenacs.uz/stats"
