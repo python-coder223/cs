@@ -287,39 +287,25 @@ async def cmd_help(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 async def cmd_renderip(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Render serverining IP sini ko'rsatadi — CS server firewall ga qo'shish uchun."""
     msg = await update.message.reply_text("⏳ IP aniqlanmoqda...")
-    ip  = "topilmadi"
-
-    # 1. Socket orqali
+    ip = "topilmadi"
     try:
-        import socket
-        ip = socket.gethostbyname(socket.gethostname())
+        loop = asyncio.get_running_loop()
+        ip = await loop.run_in_executor(
+            None,
+            lambda: requests.get("https://checkip.amazonaws.com", timeout=10).text.strip()
+        )
     except Exception:
-        pass
-
-    # 2. requests orqali (bir nechta servis)
-    if not ip or ip.startswith("127.") or ip == "topilmadi":
-        for url in [
-            "https://api.ipify.org",
-            "https://ifconfig.me/ip",
-            "https://checkip.amazonaws.com",
-            "https://icanhazip.com",
-        ]:
-            try:
-                loop = asyncio.get_running_loop()
-                resp = await loop.run_in_executor(
-                    None,
-                    lambda u=url: requests.get(u, timeout=5).text.strip()
-                )
-                if resp and "." in resp:
-                    ip = resp
-                    break
-            except Exception:
-                continue
+        try:
+            ip = await loop.run_in_executor(
+                None,
+                lambda: requests.get("https://api4.my-ip.io/ip", timeout=10).text.strip()
+            )
+        except Exception:
+            pass
 
     await msg.edit_text(
-        f"🌐 <b>Render Server IP:</b>\n"
+        f"🌐 <b>Render Server tashqi IP:</b>\n"
         f"<code>{ip}</code>\n\n"
         f"📋 Bu IP ni CS server adminga yuboring\n"
         f"va firewall UDP whitelist ga qo'shsin.",
