@@ -27,10 +27,10 @@ from telegram.ext import (
 # =========================
 # CONFIG
 # =========================
-TOKEN = "8754991264:AAFp4lKU26tyUJGme8n0dB0W1WpE0cupPRI"
-CS_HOST = "84.54.82.226"
-CS_PORT = 27015
-SITE_URL = "https://arenacs.uz/stats"
+TOKEN       = "8754991264:AAEMfS7pLSBieHnuunCCz5Jl4I9SZylqCic"
+CS_HOST     = "84.54.82.226"
+CS_PORT     = 27015
+SITE_URL    = "https://arenacs.uz/stats"
 SERVER_NAME = "ARENACS.UZ | PUBLIC 18+"
 
 logging.basicConfig(
@@ -40,21 +40,21 @@ logging.basicConfig(
 logger = logging.getLogger("cs_status_bot")
 
 # =========================
-# FLASK
+# FLASK (Render uchun)
 # =========================
-app = Flask(__name__)
+web_app = Flask(__name__)
 
-@app.get("/")
+@web_app.get("/")
 def home():
     return "CS Status Bot is running", 200
 
-@app.get("/health")
+@web_app.get("/health")
 def health():
     return {"ok": True}, 200
 
 def run_flask():
     port = int(os.getenv("PORT", "8080"))
-    app.run(host="0.0.0.0", port=port)
+    web_app.run(host="0.0.0.0", port=port)
 
 # =========================
 # CLEANUP
@@ -109,6 +109,18 @@ def fmt_time(seconds: float) -> str:
         return f"{h}:{m % 60:02d}:{s % 60:02d}"
     return f"{m}:{s % 60:02d}"
 
+def get_my_ip() -> str:
+    """Render serverining tashqi IP sini oladi."""
+    for url in ["https://api.ipify.org", "https://ifconfig.me/ip", "https://icanhazip.com"]:
+        try:
+            resp = requests.get(url, timeout=5)
+            ip = resp.text.strip()
+            if ip:
+                return ip
+        except Exception:
+            continue
+    return "IP topilmadi"
+
 def query_server():
     try:
         info    = a2s.info((CS_HOST, CS_PORT), timeout=5)
@@ -135,9 +147,9 @@ def build_status_text(result: dict) -> str:
 
     info         = result["info"]
     players      = result["players"]
-    map_name     = clean(getattr(info, "map_name",     "") or "Noma'lum")
-    player_count = int(getattr(info, "player_count",    0) or 0)
-    max_players  = int(getattr(info, "max_players",    32) or 32)
+    map_name     = clean(getattr(info, "map_name",    "") or "Noma'lum")
+    player_count = int(getattr(info, "player_count",   0) or 0)
+    max_players  = int(getattr(info, "max_players",   32) or 32)
     percent      = round(player_count / max_players * 100) if max_players else 0
 
     real_players = sorted(
@@ -217,8 +229,8 @@ def make_top10_image(players: list) -> bytes:
     draw = ImageDraw.Draw(img)
 
     draw.rectangle([0, 0, W, HDR_H], fill=(19, 19, 31))
-    draw.text((W//2, 20), "TOP 10 OYINCHILAR",        font=FONT_BOLD,   fill=(247,147,30), anchor="mt")
-    draw.text((W//2, 54), "arenacs.uz/stats  •  CS 1.6", font=FONT_SMALL, fill=(68,68,68),   anchor="mt")
+    draw.text((W//2, 20), "TOP 10 OYINCHILAR",           font=FONT_BOLD,   fill=(247,147,30), anchor="mt")
+    draw.text((W//2, 54), "arenacs.uz/stats  •  CS 1.6", font=FONT_SMALL,  fill=(68,68,68),   anchor="mt")
     draw.line([(0, HDR_H), (W, HDR_H)], fill=(34,34,34), width=2)
 
     cy = HDR_H + 6
@@ -233,8 +245,8 @@ def make_top10_image(players: list) -> bytes:
         y = HDR_H + 28 + i * ROW_H
         draw.rectangle([0, y, W, y+ROW_H-1], fill=(15,15,26) if i%2==0 else (13,13,20))
         bw = int((p["kills"] / max_kills) * 155)
-        draw.rectangle([458, y+ROW_H-6, 613,      y+ROW_H-3], fill=(20,20,35))
-        draw.rectangle([458, y+ROW_H-6, 458+bw,   y+ROW_H-3], fill=(180,50,40))
+        draw.rectangle([458, y+ROW_H-6, 613,    y+ROW_H-3], fill=(20,20,35))
+        draw.rectangle([458, y+ROW_H-6, 458+bw, y+ROW_H-3], fill=(180,50,40))
         rc = rank_colors.get(p["rank"], (60,60,80))
         draw.rectangle([18, y+10, 50, y+34], fill=(rc[0]//6, rc[1]//6, rc[2]//6))
         draw.text((34, y+22), str(p["rank"]), font=FONT_BOLD_S, fill=rc, anchor="mm")
@@ -270,7 +282,21 @@ async def cmd_help(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "❓ Yordam:\n\n"
         "• Online / онлайн — server holati\n"
         "• /status — server holati\n"
-        "• /top — TOP 10 rasm"
+        "• /top — TOP 10 rasm\n"
+        "• /renderip — Render server IP si"
+    )
+
+async def cmd_renderip(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Render serverining IP sini ko'rsatadi — CS server firewall ga qo'shish uchun."""
+    msg = await update.message.reply_text("⏳ IP aniqlanmoqda...")
+    loop = asyncio.get_running_loop()
+    ip   = await loop.run_in_executor(None, get_my_ip)
+    await msg.edit_text(
+        f"🌐 <b>Render Server IP:</b>\n"
+        f"<code>{ip}</code>\n\n"
+        f"⚙️ Bu IP ni CS server firewall UDP whitelist ga qo'shing:\n"
+        f"<code>{ip}:27015 UDP — ruxsat</code>",
+        parse_mode="HTML"
     )
 
 async def send_status(update: Update, context: ContextTypes.DEFAULT_TYPE, reply_to_message_id=None):
@@ -299,16 +325,11 @@ async def on_text_trigger(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     txt = update.message.text.strip().lower()
 
-    # Barcha trigger so'zlar — to'liq mos kelsa yoki shu so'z bilan boshlanasa ishlaydi
     TRIGGERS = [
-        # O'zbekcha
         "online", "onlayn", "onlin", "onlain",
         "online botlar", "onlayn botlar", "online bor",
-        "онлайн", "олайн", "онлайн botlar",
-        # Ruscha
-        "онлайн", "олине", "онлине", "онлаин",
+        "олайн", "онлайн", "олине", "онлине", "онлаин",
         "статус", "статус сервера",
-        # Inglizcha / xato yozilgan
         "status", "ststus", "sttatus", "staus", "stauts",
     ]
 
@@ -377,16 +398,17 @@ async def on_error(update: object, context: ContextTypes.DEFAULT_TYPE):
 # MAIN
 # =========================
 def run_bot():
-    app = Application.builder().token(TOKEN).build()
-    app.add_error_handler(on_error)
-    app.add_handler(CommandHandler("start",  cmd_start))
-    app.add_handler(CommandHandler("help",   cmd_help))
-    app.add_handler(CommandHandler("status", cmd_status))
-    app.add_handler(CommandHandler("top",    cmd_top))
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, on_text_trigger))
-    app.add_handler(CallbackQueryHandler(on_callback))
+    application = Application.builder().token(TOKEN).build()
+    application.add_error_handler(on_error)
+    application.add_handler(CommandHandler("start",    cmd_start))
+    application.add_handler(CommandHandler("help",     cmd_help))
+    application.add_handler(CommandHandler("status",   cmd_status))
+    application.add_handler(CommandHandler("top",      cmd_top))
+    application.add_handler(CommandHandler("renderip", cmd_renderip))
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, on_text_trigger))
+    application.add_handler(CallbackQueryHandler(on_callback))
     logger.info("Bot started: %s:%s", CS_HOST, CS_PORT)
-    app.run_polling(drop_pending_updates=True, allowed_updates=Update.ALL_TYPES)
+    application.run_polling(drop_pending_updates=True, allowed_updates=Update.ALL_TYPES)
 
 if __name__ == "__main__":
     t = threading.Thread(target=run_flask, daemon=True)
