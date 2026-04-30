@@ -289,13 +289,40 @@ async def cmd_help(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def cmd_renderip(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Render serverining IP sini ko'rsatadi — CS server firewall ga qo'shish uchun."""
     msg = await update.message.reply_text("⏳ IP aniqlanmoqda...")
-    loop = asyncio.get_running_loop()
-    ip   = await loop.run_in_executor(None, get_my_ip)
+    ip  = "topilmadi"
+
+    # 1. Socket orqali
+    try:
+        import socket
+        ip = socket.gethostbyname(socket.gethostname())
+    except Exception:
+        pass
+
+    # 2. requests orqali (bir nechta servis)
+    if not ip or ip.startswith("127.") or ip == "topilmadi":
+        for url in [
+            "https://api.ipify.org",
+            "https://ifconfig.me/ip",
+            "https://checkip.amazonaws.com",
+            "https://icanhazip.com",
+        ]:
+            try:
+                loop = asyncio.get_running_loop()
+                resp = await loop.run_in_executor(
+                    None,
+                    lambda u=url: requests.get(u, timeout=5).text.strip()
+                )
+                if resp and "." in resp:
+                    ip = resp
+                    break
+            except Exception:
+                continue
+
     await msg.edit_text(
         f"🌐 <b>Render Server IP:</b>\n"
         f"<code>{ip}</code>\n\n"
-        f"⚙️ Bu IP ni CS server firewall UDP whitelist ga qo'shing:\n"
-        f"<code>{ip}:27015 UDP — ruxsat</code>",
+        f"📋 Bu IP ni CS server adminga yuboring\n"
+        f"va firewall UDP whitelist ga qo'shsin.",
         parse_mode="HTML"
     )
 
