@@ -28,10 +28,10 @@ from telegram.ext import (
 # CONFIG
 # =========================
 TOKEN       = "8754991264:AAFcBbgpExJYqx0T5O412I1XdQSgW3Jym3g"
-CS_HOST     = "198.163.207.220"
+CS_HOST     = "95.182.118.42"
 CS_PORT     = 27015
 SITE_URL    = "https://arenacs.uz/stats"
-SERVER_NAME = "ARENACS.UZ | PUBLIC 18+"
+SERVER_NAME = "PrimeCS.UZ | PUBLIC #1"
 
 logging.basicConfig(
     format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
